@@ -6,12 +6,8 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
 
-
 GO_BLACK = True
 GO_WHITE = False
-
-
-
 
 
 class GoEngine():
@@ -39,15 +35,20 @@ class GoEngine():
         if self.user_color != self.this_turn:
             self.program.sendline('genmove ' + GoEngine.GetColorString(self.this_turn))
             self.program.expect('\r\n\r\n', 10)
-
+            self.program.before
             self.this_turn = not self.this_turn
 
     def userMove(self, posstr):
         if self.user_color == self.this_turn:
             self.program.sendline('play ' + GoEngine.GetColorString(self.this_turn) + ' ' + posstr)
             self.program.expect('\r\n\r\n', 1)
-
-            self.this_turn = not self.this_turn
+            resultStr = self.program.before.split()[3:]
+            if resultStr[0] == '=':
+                self.this_turn = not self.this_turn
+            elif resultStr[0] == '?' and resultStr[1] == 'illegal' and resultStr[2] == 'move':
+                pass
+            else:
+                print 'command not found'
 
     @staticmethod
     def PosstrToPos(posstr):
@@ -91,7 +92,7 @@ class GoEngine():
 
 class GoWindow(Fl_Gl_Window):
     def __init__(self):
-        Fl_Gl_Window.__init__(self, 200, 200, 800, 800)
+        Fl_Gl_Window.__init__(self, 0, 0, 800, 800)
 
         self.engine = GoEngine()
         self.engine.startEngine()
@@ -176,18 +177,28 @@ class GoWindow(Fl_Gl_Window):
                 # remove I
                 posstr = chr(pos[0]+10+64+1) + str(pos[1]+10)
             self.engine.userMove(posstr)
-            enginePos = self.engine.engineMove()
             self.engine.GetStatus()
+            self.redraw()
 
-
+        elif e == FL_RELEASE:
+            self.engine.engineMove()
+            self.engine.GetStatus()
             self.redraw()
 
         return Fl_Gl_Window.handle(self, e)
 
 
+class GoPlayer(Fl_Window):
+    def __init__(self):
+        Fl_Window.__init__(self, 300, 300, 1280, 800)
+        self.begin()
+        self.gowindow = GoWindow()
+        self.end()
 
 
-goWindow = GoWindow()
 
-goWindow.show()
+
+goPlayer = GoPlayer()
+
+goPlayer.show()
 Fl.run()
